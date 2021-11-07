@@ -1,0 +1,9 @@
+a.out
+CMakeList.txt
+cmake-build-debug/*
+.idea/*
+.vscode/*
+../*.out
+../.gradle
+../cmake-build-debug
+theory
