@@ -1,115 +1,60 @@
-#include "list.h"
-#include <string.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
+#include <limits.h>
+#include <pthread.h>
 #include <unistd.h>
+#include "list.h"
 
-void mutexLockErrorCheck(pthread_mutex_t* mutex) {
-    if (pthread_mutex_lock(mutex)) {
-        perror("Error mutex locking!\n");
-        exit(1);
+#define SLEEP_BETWEEN_SORT_SECONDS 5
+#define SORTING_THREADS_AMOUNT 1
+#define SHOW_LIST_WORD " "
+#define STOP_WORD "STOP"
+
+node* list;
+int stop = 0;
+
+void* threadWork(void* arg) {
+    while (!stop) {
+        sleep(SLEEP_BETWEEN_SORT_SECONDS);
+        sortList(list);
     }
+    return NULL;
 }
 
-void mutexUnlockErrorCheck(pthread_mutex_t* mutex) {
-    if (pthread_mutex_unlock(mutex)) {
-        perror("Error mutex unlocking!\n");
-        exit(1);
-    }
-}
+int main() {
+    pthread_t threadIds[SORTING_THREADS_AMOUNT] = {0};
+    list = createList();
 
-node* createNode(char* str) {
-    node* newNode = (node*)calloc(1, sizeof(node));
-    char* newString = NULL;
-    if (str != NULL) {
-        newString = (char*)calloc(strlen(str), sizeof(char));
-        strcpy(newString, str);
-    }
-
-    newNode->next = NULL;
-    newNode->string = newString;
-    if (pthread_mutex_init(&newNode->mutex, NULL)) {
-        perror("Error mutex init!\n");
-        exit(1);
-    }
-    return newNode;
-}
-
-node* createList() {
-    return createNode(NULL);
-}
-
-void printList(node* list) {
-    printf("---list---\n");
-    mutexLockErrorCheck(&list->mutex);
-    node* prev = list;
-
-    for (node* cur = list->next; cur != NULL; cur = cur->next) {
-        mutexLockErrorCheck(&cur->mutex);
-        mutexUnlockErrorCheck(&prev->mutex);
-        printf("%s\n", cur->string);
-        prev = cur;
-    }
-
-    mutexUnlockErrorCheck(&prev->mutex);
-    printf("---end of list---\n");
-}
-
-void addFirst(node* list, char* str) {
-    node* newNode = createNode(str);
-    mutexLockErrorCheck(&list->mutex);
-    newNode->next = list->next;
-    list->next = newNode;
-    mutexUnlockErrorCheck(&list->mutex);
-}
-
-void freeList(node* list) {
-    if (list != NULL) {
-        while (list->next != NULL) {
-            node* tmp = list;
-            list = list->next;
-            free(tmp->string);
-            pthread_mutex_destroy(&tmp->mutex);
-            free(tmp);
+    for (int i = 0; i < SORTING_THREADS_AMOUNT; i++) {
+        if (pthread_create(&threadIds[i], NULL, threadWork, NULL)) {
+            perror("Error creating thread!\n");
+            return 1;
         }
-        pthread_mutex_destroy(&list->mutex);
-        free(list);
-    }
-}
-
-void sortList(node* list) {
-    if (list == NULL || list->next == NULL) {
-        return; 
     }
 
-    int swapped = 0;
-    int update = 0;
-    node* last = NULL;
-
-    while (!swapped) {
-        swapped = 1;
-        mutexLockErrorCheck(&list->mutex);
-        mutexLockErrorCheck(&list->next->mutex);
-        node* prev = list;
-        node* i;
-        for (i = list->next; i->next != last; i = i->next) {
-            mutexLockErrorCheck(&i->next->mutex);
-            if (strcmp(i->string, i->next->string) > 0) {
-                char* tmp = i->string;
-                i->string = i->next->string;
-                i->next->string = tmp;
-                swapped = 0;
-                update = 1;
-            }
-            mutexUnlockErrorCheck(&prev->mutex);
-            prev = i;
-            if (update) {
-                update = 0;
-                sleep(SLEEP_WHILE_SORTING_SECONDS);
-            }
+    char str[ARG_MAX + 1] = {0};
+    while (fgets(str, ARG_MAX + 1, stdin) != NULL) {
+        str[strlen(str) - 1] = '\0';
+        if (strcmp(SHOW_LIST_WORD, str) == 0) {
+            printList(list);
         }
-        last = i;
-        mutexUnlockErrorCheck(&prev->mutex);
-        mutexUnlockErrorCheck(&i->mutex);
+        else if (strcmp(STOP_WORD, str) != 0) {
+            addFirst(list, str);
+        }
+        else {
+            stop = 1;
+            break;
+        }
     }
+
+    for (int i = 0; i < SORTING_THREADS_AMOUNT; i++) {
+        if (pthread_join(threadIds[i], NULL)) {
+            perror("Error thread join!\n");
+            return 1;
+        }
+    }
+
+    freeList(list);
+
+    return 0;
 }
