@@ -25,7 +25,7 @@ void* print(void* arg) {
 
     for (int i = 0; i < LINES_AMOUNT; i++) {
         while (currentTurn != threadArgument->myTurnNumber) {
-            if (pthread_cond_wait(&condVar,&mutex)) {
+            if (pthread_cond_wait(&condVar, &mutex)) {
                 perror("Error waiting condition variable!\n");
             }
         }
@@ -46,14 +46,14 @@ void* print(void* arg) {
 
 int main() {
     pthread_t threadId;
-    args* secondThreadArg = (args*)calloc(sizeof(args), 1);
+    args* secondThreadArg = (args*)calloc(1, sizeof(args));
     secondThreadArg->myTurnNumber = 0;
-    secondThreadArg->stringToPrint = (char*)calloc(sizeof(char), STR_MAX_LENGTH);
-    strcpy(secondThreadArg->stringToPrint,"2nd thread message");
+    secondThreadArg->stringToPrint = (char*)calloc(STR_MAX_LENGTH, sizeof(char));
+    strcpy(secondThreadArg->stringToPrint, "2nd thread message");
 
-    args* firstThreadArg = (args*)calloc(sizeof(args), 1);
+    args* firstThreadArg = (args*)calloc(1, sizeof(args));
     firstThreadArg->myTurnNumber = 1;
-    firstThreadArg->stringToPrint = (char*)calloc(sizeof(char), STR_MAX_LENGTH);
+    firstThreadArg->stringToPrint = (char*)calloc(STR_MAX_LENGTH, sizeof(char));
     strcpy(firstThreadArg->stringToPrint,"1st thread message");
 
     if (pthread_mutex_init(&mutex, NULL)) {
@@ -61,7 +61,7 @@ int main() {
         return 1;
     }
 
-    if (pthread_cond_init(&condVar,NULL)) {
+    if (pthread_cond_init(&condVar, NULL)) {
         perror("Error creating condition variable!\n");
         return 1;
     }
