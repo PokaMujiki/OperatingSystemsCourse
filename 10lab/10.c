@@ -1,17 +1,25 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 #define PHILO 5
 #define DELAY 30000
-#define FOOD 50
+#define FOOD_START 1000000
+#define MAX_EAT_SLEEP 30000
+#define MIN_EAT_SLEEP 3000
+#define MAX_THINKING_SLEEP 10000
+#define MIN_THINKING_SLEEP 0
+#define FOOD_START 1000000
 
+int eaten[PHILO] = {0};
 pthread_mutex_t forks[PHILO];
 pthread_t phils[PHILO];
 pthread_mutex_t foodlock;
 
+
 int food_on_table () {
-    static int food = FOOD + 1;
+    static int food = FOOD_START + 1;
     int myfood;
 
     pthread_mutex_lock(&foodlock);
@@ -52,10 +60,12 @@ void* philosopher(void *num) {
         get_fork(id, second_fork);
 
         printf("Philosopher %d: eating.\n", id);
-        usleep(DELAY * (FOOD - f + 1));
+        usleep(MIN_EAT_SLEEP + (rand() % (MAX_EAT_SLEEP - MIN_EAT_SLEEP + 1)));
+        eaten[id]++;
 
         down_fork(second_fork);
         down_fork(first_fork);
+        usleep(MIN_THINKING_SLEEP + (rand() % (MAX_THINKING_SLEEP - MIN_THINKING_SLEEP + 1)));
     }
 
     printf("Philosopher %d is done eating.\n", id);
@@ -72,5 +82,11 @@ int main () {
     for (int i = 0; i < PHILO; i++) {
         pthread_join (phils[i], NULL);
     }
+
+    for (int i = 0; i < PHILO; i++) {
+        printf("Philosopher %d ate %d or %.2lf%% of all food\n",
+            i, eaten[i], (double)eaten[i] / FOOD_START * 100);
+    }
+
     return 0;
 }

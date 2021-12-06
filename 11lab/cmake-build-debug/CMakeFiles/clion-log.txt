@@ -1,0 +1,1 @@
+CMakeLists.txt not found in /home/alexandr/OperatingSystemsCourse/11lab Select CMakeLists.txt
