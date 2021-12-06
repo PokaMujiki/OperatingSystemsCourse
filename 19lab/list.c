@@ -41,21 +41,17 @@ node* createList() {
 
 void printList(node* list) {
     printf("---list---\n");
-    mutexLockErrorCheck(&list->mutex);
-    node* prev = list;
-
-    for (node* cur = list->next; cur != NULL; cur = cur->next) {
-        mutexLockErrorCheck(&cur->mutex);
-        mutexUnlockErrorCheck(&prev->mutex);
-        printf("%s\n", cur->string);
-        prev = cur;
+    if (list != NULL && list->next != NULL) {
+        for (node* cur = list->next; cur != NULL; cur = cur->next) {
+            mutexLockErrorCheck(&cur->mutex);
+            printf("%s\n", cur->string);
+            mutexUnlockErrorCheck(&cur->mutex);
+        }
     }
-
-    mutexUnlockErrorCheck(&prev->mutex);
     printf("---end of list---\n");
 }
 
-void addFirst(node* list, char* str) {
+void addFirst(node* list, char* str) { 
     node* newNode = createNode(str);
     mutexLockErrorCheck(&list->mutex);
     newNode->next = list->next;
@@ -82,34 +78,32 @@ void sortList(node* list) {
         return; 
     }
 
-    int swapped = 0;
-    int update = 0;
+    int swapped = 1;
+    int nowSwapped = 0;
     node* last = NULL;
 
-    while (!swapped) {
-        swapped = 1;
-        mutexLockErrorCheck(&list->mutex);
-        mutexLockErrorCheck(&list->next->mutex);
-        node* prev = list;
-        node* i;
-        for (i = list->next; i->next != last; i = i->next) {
-            mutexLockErrorCheck(&i->next->mutex);
-            if (strcmp(i->string, i->next->string) > 0) {
-                char* tmp = i->string;
-                i->string = i->next->string;
-                i->next->string = tmp;
-                swapped = 0;
-                update = 1;
+    while (swapped) {
+        swapped = 0;
+        node* cur = list->next;
+        mutexLockErrorCheck(&cur->mutex);
+        for (; cur->next != last; cur = cur->next) {
+            nowSwapped = 0;
+            mutexLockErrorCheck(&cur->next->mutex);
+            if (strcmp(cur->string, cur->next->string) > 0) {
+                char* tmp = cur->string;
+                cur->string = cur->next->string;
+                cur->next->string = tmp;
+                swapped = 1;
+                nowSwapped = 1;
             }
-            mutexUnlockErrorCheck(&prev->mutex);
-            prev = i;
-            if (update) {
-                update = 0;
+            mutexUnlockErrorCheck(&cur->mutex);
+            if (nowSwapped) {
+                mutexUnlockErrorCheck(&cur->next->mutex);
                 sleep(SLEEP_WHILE_SORTING_SECONDS);
+                mutexLockErrorCheck(&cur->next->mutex);
             }
         }
-        last = i;
-        mutexUnlockErrorCheck(&prev->mutex);
-        mutexUnlockErrorCheck(&i->mutex);
+        mutexUnlockErrorCheck(&cur->mutex);
+        last = cur;
     }
 }
