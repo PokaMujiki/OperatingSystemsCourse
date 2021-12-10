@@ -84,6 +84,7 @@ void getForks(int philoId, int firstFork, int secondFork) {
         }
         else if (statusSecond == EBUSY) {
             mutexUnlockErrorCheck(&forks[firstFork], "one of forks mutex unlock");
+            pthread_cond_broadcast(&condVar);
             pthread_cond_wait(&condVar, &condVarMutex);
         }
         else {
